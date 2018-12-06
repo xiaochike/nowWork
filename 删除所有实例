@@ -1,0 +1,78 @@
+#!/usr/local/easyops/python/bin/python
+# _*_coding: utf-8_*_
+import urllib, requests
+DEBUG=True
+CMDB_HEADERS = {
+    'host': 'cmdb.easyops-only.com',
+    'org': str(EASYOPS_ORG),
+    'user': EASYOPS_USER
+}
+# 自定义CMDB请求
+def cmdb_request(method, url, params=None):
+    url = urllib.quote(url, safe='/:?=&')
+    if DEBUG:
+        print '---------- Sending cmdb request: %s %s using params %s' % (method, url, str(params))
+    else:
+        print '---------- Sending cmdb request: %s %s ' % (method, url)
+    try:
+        r = requests.request(method=method, url=url,
+                             headers=CMDB_HEADERS, json=params)
+        if r.status_code == 200:
+            js = r.json()
+        else:
+            print("Error: status_code = %s" % r.status_code)
+            print("Error: error_info = %s" % r.text)
+            return None
+
+        if int(js['code']) == 0:
+            return js
+        else:
+            print(u'请求失败 ' + js['error'] + ' -- ' + str(params))
+            return None
+
+    except Exception as e:
+        print(e)
+        return None
+
+def cmdb_object_get_all(object_id, params=None, pagesize=3000):
+    search_url = 'http://{EASYOPS_CMDB_HOST}/object/{object_id}/instance/_search'\
+        .format(EASYOPS_CMDB_HOST=EASYOPS_CMDB_HOST, object_id=object_id)
+    if params is None:
+        params = {}
+    params['page'] = 1
+    params['page_size'] = pagesize
+
+    try:
+        result = cmdb_request('POST', search_url, params=params)
+        if result:
+            if int(result['data']['total']) > pagesize:
+                pages = int(result['data']['total']) / pagesize
+                result = result['data']['list']
+                for i in range(2, pages + 2):
+                    params['page'] = i
+                    result = result + cmdb_request('POST', search_url, params=params)['data']['list']
+                return result
+            else:
+                return result['data']['list']
+        else:
+            return []
+    except Exception, e:
+        print 'Get cmdb instance error: %s ' % e    
+
+def deleteInstance(instanceId):
+    for id in instanceId:
+        try:
+            url = 'http://{EASYOPS_CMDB_HOST}/object/{object_id}/instance/{instance_id}'\
+                .format(EASYOPS_CMDB_HOST=EASYOPS_CMDB_HOST, object_id=objectId,instance_id=id['instanceId'])
+            print'正在删除实例:', id['instanceId']
+            requests.request(method='delete', url=url, headers=CMDB_HEADERS)
+            print '删除完成！'
+        except Exception as e:
+            print '删除出错：', id['instanceId']
+            print e
+
+params={"fields": {"instanceId": True}}
+instanceId=cmdb_object_get_all(object_id=objectId, params=params)
+print '该模型下实例有：'
+print instanceId
+deleteInstance(instanceId)
