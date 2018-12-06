@@ -1,0 +1,51 @@
+# _*_coding: utf-8_*_
+import xml.etree.ElementTree as ET
+import requests
+import sys
+import os
+
+reload(sys)
+sys.setdefaultencoding('utf8')
+
+
+def get_message():
+    messages = []
+    xml = requests.get('http://tam.gf.com.cn/app/portalservice/restful/UUMService/alldept/ccbm/ccbm/')
+    with open('C:\Users\Admin\Desktop\work.xml', 'w') as file:
+         file.write(xml.text)
+    root = ET.parse('C:\Users\Admin\Desktop\work.xml').getroot()
+    os.remove('C:\Users\Admin\Desktop\work.xml')
+
+    for i in root.iter('ret'):
+        message = {}
+        if i.find('dpfullname') is not None and i.find('dpfullname').text.find(u'总部各部门')!=-1:
+            message['dpfullname'] = i.find('dpfullname').text
+        else:
+            continue
+        if i.find('dpcode') is not None:
+            message['dpcode'] = i.find('dpcode').text
+        if i.find('dpid') is not None:
+            message['dpid'] = i.find('dpid').text
+        if i.find('dpname') is not None:
+            message['name'] = i.find('dpname').text
+        if i.find('parentdpid') is not None:
+            message['parentdpid'] = i.find('parentdpid').text
+        messages.append(message)
+    return messages
+
+
+def instanceCreate(params, objectId):
+    for param in params:
+        operation_url = '/object/' + objectId + '/instance'
+        url = 'http://' + '10.2.148.180' + operation_url
+        headers = {
+            'host': 'cmdb.easyops-only.com',
+            'content-type': 'application/json',
+            'user': 'easyops',
+            'org': '3051'}
+        requests.request(method='post', url=url, headers=headers, json=param)
+
+
+if __name__ == '__main__':
+    params = get_message()
+    instanceCreate(params=params, objectId='department')
