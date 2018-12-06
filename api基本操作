@@ -1,0 +1,13 @@
+import requests
+operation_url = '/object_relation/' + 'lon_lon__lon_lon_' +\
+                '/relation_instance/'+'5c07ab680409c'
+url = 'http://' + '10.2.148.180' + operation_url
+headers = {
+            'host': 'cmdb_resource.easyops-only.com',
+            'content-type': 'application/json',
+            'user': 'easyops',
+            'org': '3051'}
+r = requests.request(method='get', url=url, headers=headers)
+k = r.json()
+# print k.decode('unicode_escape')
+print k['data']
